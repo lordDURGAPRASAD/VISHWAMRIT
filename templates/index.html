@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vishwamrit - Medicinal Leaves Classifier</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .drop-zone { border: 2px dashed #2e7d32; padding: 40px; text-align: center; cursor: pointer; background: #e8f5e9; border-radius: 8px; }
+    .search-input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .plant-card { border: 1px solid #ddd; padding: 16px; border-radius: 8px; background: #fff; }
+    .plant-card h3 { margin: 0 0 8px 0; color: #2e7d32; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌿 Vishwamrit</h1>
+  <p>Medicinal Leaves Classification Platform (SIH 2023)</p>
+
+  <div class="card">
+    <h2>Identify Leaf Image</h2>
+    <div class="drop-zone" onclick="document.getElementById('leafInput').click()">
+      <p>Click or Drag & Drop Leaf Image Here</p>
+      <input type="file" id="leafInput" accept="image/*" style="display:none;" onchange="uploadImage(this.files[0])">
+    </div>
+    <div id="result" style="display:none; margin-top:20px;">
+      <h3 id="resPlant"></h3>
+      <p>Confidence: <b id="resConf"></b>%</p>
+      <p><b>Uses:</b> <span id="resUses"></span></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Interactive Plant Info Dashboard</h2>
+    <input type="text" id="searchInput" class="search-input" placeholder="Search plant by name or active compound..." onkeyup="filterDashboard()">
+    <div class="grid" id="plantGrid"></div>
+  </div>
+</div>
+
+<script>
+  let plantsData = [];
+
+  async function loadDashboard() {
+    const res = await fetch('/api/plants');
+    plantsData = await res.json();
+    renderPlants(plantsData);
+  }
+
+  function renderPlants(list) {
+    const grid = document.getElementById('plantGrid');
+    grid.innerHTML = list.map(p => `
+      <div class="plant-card">
+        <h3>${p.name}</h3>
+        <p><i>${p.scientific_name}</i></p>
+        <p><small>${p.uses}</small></p>
+        <small><b>Active:</b> ${p.active_compounds}</small>
+      </div>
+    `).join('');
+  }
+
+  function filterDashboard() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = plantsData.filter(p => 
+      p.name.toLowerCase().includes(query) || 
+      p.active_compounds.toLowerCase().includes(query)
+    );
+    renderPlants(filtered);
+  }
+
+  async function uploadImage(file) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/predict', { method: 'POST', body: formData });
+    const data = await res.json();
+    document.getElementById('resPlant').innerText = `Identified: ${data.prediction}`;
+    document.getElementById('resConf').innerText = data.confidence;
+    document.getElementById('resUses').innerText = data.details.uses;
+    document.getElementById('result').style.display = 'block';
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

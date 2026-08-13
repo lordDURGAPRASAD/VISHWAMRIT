@@ -1,0 +1,9 @@
+# Ignore heavy datasets and model weights
+dataset/
+*.h5
+*.pkl
+*.pth
+__pycache__/
+*.pyc
+.env
+venv/
